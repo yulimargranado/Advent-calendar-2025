@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 Advent Calendar for My Love 🌟</title>
+    <!-- Carga de Tailwind CSS para un diseño rápido y moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración personalizada de Tailwind para un tema festivo -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'xmas-red': '#991B1B', // Rojo navideño
+                        'xmas-green': '#065F46', // Verde oscuro
+                        'xmas-gold': '#FCD34D', // Dorado
+                        'xmas-cream': '#FEF3C7', // Crema suave
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos personalizados para el cuerpo y la cuadrícula */
+        body {
+            background-color: #f7fafc; /* Fondo claro */
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* Estilo para la puerta del calendario */
+        .advent-door {
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            background-color: var(--tw-bg-opacity, #991B1B); /* Rojo por defecto */
+            border: 4px solid #FCD34D; /* Borde dorado */
+        }
+        /* Estilo para las puertas bloqueadas (no se pueden abrir todavía) */
+        .locked {
+            filter: grayscale(50%);
+            opacity: 0.8;
+            cursor: not-allowed;
+            animation: pulse-locked 2s infinite;
+        }
+
+        /* Animación sutil para puertas bloqueadas */
+        @keyframes pulse-locked {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(0.98); }
+        }
+
+        /* Estilo del número de la puerta */
+        .door-number {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #FEF3C7; /* Crema */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Estilo para el modal/popup */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: white;
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.open .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-image {
+            width: 100%;
+            height: auto;
+            max-height: 60vh;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-xmas-cream">
+
+    <div class="container mx-auto p-4 sm:p-8">
+        <header class="text-center mb-8 sm:mb-12">
+            <h1 class="text-4xl sm:text-6xl font-extrabold text-xmas-red tracking-tight leading-none">
+                <span class="text-xmas-green">🎁</span>Advent Calendar for My Love <span class="text-xmas-green">🎁</span>
+            </h1>
+            <p id="current-date-info" class="mt-4 text-xl text-xmas-red font-semibold">
+                Hoy es <span id="display-date"></span> (Día <span id="display-day-number"></span> de 24)
+            </p>
+        </header>
+
+        <!-- Contenedor del Calendario (Grid para las 24 puertas) -->
+        <div id="advent-calendar" class="grid grid-cols-4 sm:grid-cols-6 gap-3 sm:gap-6 max-w-5xl mx-auto">
+            <!-- Las puertas se generarán aquí con JavaScript -->
+        </div>
+
+    </div>
+
+    <!-- Modal para mostrar el contenido del día -->
+    <div id="advent-modal" class="modal-overlay">
+        <div class="modal-content flex flex-col sm:flex-row bg-white">
+            
+            <!-- Contenedor de la Imagen -->
+            <div class="flex-shrink-0 sm:w-1/2">
+                <img id="modal-image" src="" alt="Foto sorpresa del día" class="modal-image rounded-t-xl sm:rounded-l-xl sm:rounded-tr-none">
+            </div>
+
+            <!-- Contenedor del Mensaje -->
+            <div class="p-6 sm:p-8 flex flex-col justify-between sm:w-1/2">
+                <div>
+                    <h2 id="modal-day" class="text-2xl font-bold mb-4 text-xmas-green">Day X - Special Message</h2>
+                    <p id="modal-phrase" class="text-xl sm:text-2xl italic text-gray-800 leading-relaxed font-serif"></p>
+                </div>
+                <button onclick="closeModal()" class="mt-6 w-full bg-xmas-red hover:bg-xmas-green text-xmas-cream font-bold py-3 rounded-lg transition duration-200 shadow-md">
+                    Close and Return to Calendar
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // =======================================================
+        // 1. CONFIGURACIÓN DE LOS DATOS (¡AQUÍ PONES TUS FRASES!)
+        // =======================================================
+
+        const YOUR_APP_PHOTOS = [
+            {
+                phrase: "Your smile brightens even the grayest day. Never stop shining, my love!",
+                imageUrl: "imagenes/IMG_20251028_101254_387.webp" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Cada momento contigo es mi recuerdo favorito. Gracias por ser mi aventura y mi paz.",
+                imageUrl: "/imagenes/IMG_20250225_134426_914.webp" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Encontrarte fue como descubrir mi canción favorita. Me haces sentir completo.",
+                imageUrl: "/imagenes/IMG_20250320_162604_278.webp" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Que el amor nos siga inspirando a ser la mejor versión de nosotros mismos. Te amo.",
+                imageUrl: "/imagenes/IMG-20250214-WA0001.jpg" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Eres mi refugio seguro y mi lugar favorito en el mundo. Siempre a tu lado.",
+                imageUrl: "https://placehold.co/800x600/DDA0DD/000000?text=Foto+Personalizada+5" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Inspírate hoy para dar ese gran salto que deseas. Yo creo en ti incondicionalmente.",
+                imageUrl: "https://placehold.co/800x600/FFA07A/000000?text=Foto+Personalizada+6" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Nuestra historia es mi favorita, y estoy emocionado por el próximo capítulo.",
+                imageUrl: "https://placehold.co/800x600/20B2AA/FFFFFF?text=Foto+Personalizada+7" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Recuerda que tienes el poder de cambiar el mundo, empezando por el mío.",
+                imageUrl: "https://placehold.co/800x600/87CEFA/000000?text=Foto+Personalizada+8" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Gracias por la paciencia, la risa y el amor infinito. Eres mi bendición.",
+                imageUrl: "https://placehold.co/800x600/C0C0C0/000000?text=Foto+Personalizada+9" // Reemplaza con tu URL
+            },
+            {
+                phrase: "El futuro es brillante porque tú estás en él. ¡A por todas, campeón!",
+                imageUrl: "https://placehold.co/800x600/DA70D6/000000?text=Foto+Personalizada+10" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Un pequeño recordatorio: eres más fuerte de lo que crees. Respira hondo y sigue.",
+                imageUrl: "https://placehold.co/800x600/F0E68C/000000?text=Foto+Personalizada+11" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Mi mayor deseo de Adviento es seguir despertando a tu lado. Te adoro.",
+                imageUrl: "https://placehold.co/800x600/B0E0E6/000000?text=Foto+Personalizada+12" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Tu mente es brillante y tu corazón es puro. ¡Qué combinación tan poderosa!",
+                imageUrl: "https://placehold.co/800x600/8FBC8F/000000?text=Foto+Personalizada+13" // Reemplaza con tu URL
+            },
+            {
+                phrase: "La vida es mejor contigo. Literalmente. Eres mi persona favorita.",
+                imageUrl: "https://placehold.co/800x600/FF69B4/FFFFFF?text=Foto+Personalizada+14" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Que hoy sea un día de pequeños milagros y grandes alegrías para ti.",
+                imageUrl: "https://placehold.co/800x600/778899/FFFFFF?text=Foto+Personalizada+15" // Reemplaza con tu URL
+            },
+            {
+                phrase: "No hay nadie más en el mundo con quien prefiera pasar estas fiestas (ni el resto del año).",
+                imageUrl: "https://placehold.co/800x600/BA55D3/FFFFFF?text=Foto+Personalizada+16" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Ámate a ti mismo tanto como yo te amo a ti. Te mereces toda la felicidad.",
+                imageUrl: "https://placehold.co/800x600/40E0D0/000000?text=Foto+Personalizada+17" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Eres mi roca, mi apoyo y mi más grande amor. Gracias por todo.",
+                imageUrl: "https://placehold.co/800x600/E9967A/000000?text=Foto+Personalizada+18" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Permítete descansar y recargar energías. El trabajo puede esperar. Tu bienestar, no.",
+                imageUrl: "https://placehold.co/800x600/98FB98/000000?text=Foto+Personalizada+19" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Haces que mi corazón salte como un duende. No cambies nunca.",
+                imageUrl: "https://placehold.co/800x600/AFEEEE/000000?text=Foto+Personalizada+20" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Hoy es un buen día para que te mimes y recuerdes lo increíble que eres. ¡Hazlo!",
+                imageUrl: "https://placehold.co/800x600/DB7093/FFFFFF?text=Foto+Personalizada+21" // Reemplaza con tu URL
+            },
+            {
+                phrase: "Somos un gran equipo, y juntos podemos con cualquier cosa. ¡Feliz casi Nochebuena!",
+                imageUrl: "https://placehold.co/800x600/FFB6C1/000000?text=Foto+Personalizada+22" // Reemplaza con tu URL
+            },
+            {
+                phrase: "El mejor regalo no está bajo el árbol, está a mi lado. Te amo infinitamente.",
+                imageUrl: "https://placehold.co/800x600/5F9EA0/FFFFFF?text=Foto+Personalizada+23" // Reemplaza con tu URL
+            },
+            {
+                phrase: "¡Llegó la Navidad! Gracias por el año más mágico. Eres mi sueño hecho realidad. ¡Feliz Navidad!",
+                imageUrl: "https://placehold.co/800x600/FF4500/FFFFFF?text=Foto+Personalizada+24" // Reemplaza con tu URL
+            }
+        ];
+
+        // =======================================================
+        // 2. LÓGICA DEL CALENDARIO
+        // =======================================================
+
+        const calendarContainer = document.getElementById('advent-calendar');
+        const today = new Date();
+        const currentMonth = today.getMonth(); // 0 para Enero, 11 para Diciembre
+        const currentDay = today.getDate(); // Día del mes
+
+        // Función para generar las puertas
+        function renderDoors() {
+            calendarContainer.innerHTML = ''; // Limpiar el contenedor
+
+            YOUR_APP_PHOTOS.forEach((item, index) => {
+                const dayNumber = index + 1; // El día del 1 al 24
+                const isDecember = currentMonth === 11; // ¿Es Diciembre?
+                
+                // Si estamos en Diciembre, la puerta está "disponible" si el día actual es >= el número de la puerta.
+                // Si aún no es Diciembre, solo el día 1 está disponible para que pueda ver la primera pista, 
+                // pero si quieres que las puertas SÍ o SÍ se abran solo en Diciembre, cambia el "false" por "true" en el "isLocked"
+                let isLocked = true; 
+                
+                if (isDecember) {
+                    isLocked = (currentDay < dayNumber);
+                } else {
+                    // Si no es Diciembre, todas están bloqueadas (Excepto para testing, si quieres desbloquearlo temporalmente, pon isLocked = false)
+                    isLocked = true; 
+                }
+
+                // Crear el elemento de la puerta
+                const door = document.createElement('div');
+                door.classList.add(
+                    'advent-door', 
+                    'flex', 
+                    'items-center', 
+                    'justify-center', 
+                    'aspect-square', 
+                    'rounded-xl', 
+                    'transform',
+                    'hover:scale-105'
+                );
+                
+                door.setAttribute('data-day', dayNumber);
+                
+                if (isLocked) {
+                    door.classList.add('locked', 'bg-xmas-green', 'hover:shadow-lg');
+                } else {
+                    door.classList.add('bg-xmas-red', 'hover:shadow-xl');
+                    door.setAttribute('onclick', `openModal(${index})`);
+                }
+
+                door.innerHTML = `
+                    <span class="door-number">${dayNumber}</span>
+                    <!-- Icono para indicar si está bloqueado o no -->
+                    ${isLocked ? '<span class="absolute top-2 right-2 text-xmas-gold text-lg">🔒</span>' : '<span class="absolute top-2 right-2 text-xmas-gold text-lg">✨</span>'}
+                `;
+
+                calendarContainer.appendChild(door);
+            });
+            
+            // Actualizar la información de la fecha
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('display-date').textContent = today.toLocaleDateString('es-ES', options);
+            
+            // Mostrar el día del calendario, solo si es Diciembre
+            let dayText = 'Aún no es diciembre 🤫';
+            if (currentMonth === 11) {
+                dayText = currentDay;
+            }
+            document.getElementById('display-day-number').textContent = dayText;
+        }
+
+
+        // =======================================================
+        // 3. LÓGICA DEL POPUP (MODAL)
+        // =======================================================
+
+        const modal = document.getElementById('advent-modal');
+        const modalImage = document.getElementById('modal-image');
+        const modalDay = document.getElementById('modal-day');
+        const modalPhrase = document.getElementById('modal-phrase');
+
+
+        function openModal(index) {
+            const data = YOUR_APP_PHOTOS[index];
+            const day = index + 1;
+
+            // Rellenar el modal con los datos
+            modalImage.src = data.imageUrl;
+            modalImage.alt = `Foto de sorpresa para el día ${day}`;
+            modalDay.textContent = `Día ${day} - Un Mensaje Especial`;
+            modalPhrase.textContent = data.phrase;
+
+            // Mostrar el modal
+            modal.classList.add('open');
+        }
+
+        function closeModal() {
+            // Ocultar el modal
+            modal.classList.remove('open');
+            // Limpiar contenido (opcional)
+            modalImage.src = '';
+            modalPhrase.textContent = '';
+        }
+
+        // Cierra el modal si se pulsa fuera de él
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Cierra el modal si se pulsa la tecla ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('open')) {
+                closeModal();
+            }
+        });
+
+
+        // Inicializar el calendario al cargar la página
+        window.onload = renderDoors;
+    </script>
+</body>
+
+</html>
+
